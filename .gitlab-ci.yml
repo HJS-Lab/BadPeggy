@@ -14,49 +14,29 @@ cache:
   paths:
     - .m2/repository
 
-# JAR Build - läuft bei jedem Push/MR
 build-jar:
   stage: build
   script:
-    - mvn $MAVEN_CLI_OPTS compile
-        -Dswt.artifactId=$SWT_ARTIFACT
-    - mvn $MAVEN_CLI_OPTS package -DskipTests
-        -Dswt.artifactId=$SWT_ARTIFACT
-        -Dswt.os=win32
-        -Dswt.arch=x86_64
+    - mvn $MAVEN_CLI_OPTS compile -Dswt.artifactId=$SWT_ARTIFACT
+    - mvn $MAVEN_CLI_OPTS package -DskipTests -Dswt.artifactId=$SWT_ARTIFACT -Dswt.os=win32 -Dswt.arch=x86_64
   artifacts:
     paths:
       - target/*-standalone.jar
     expire_in: 30 days
 
-# Release-Paket mit Custom JRE - nur manuell
 create-release:
   stage: release
   when: manual
   script:
     - apt-get update -qq && apt-get install -y -qq wget unzip > /dev/null
-
-    # Windows JDK herunterladen für jlink Cross-Compilation
     - echo "Downloading Windows JDK for cross-compilation..."
-    - wget -q "https://api.adoptium.net/v3/binary/latest/17/ga/windows/x64/jdk/hotspot/normal/eclipse"
-        -O windows-jdk.zip
+    - wget -q "https://api.adoptium.net/v3/binary/latest/17/ga/windows/x64/jdk/hotspot/normal/eclipse" -O windows-jdk.zip
     - unzip -q windows-jdk.zip -d windows-jdk-extracted
     - export WIN_JDK_JMODS=$(find windows-jdk-extracted -name "jmods" -type d | head -1)
     - echo "Windows JDK jmods found at $WIN_JDK_JMODS"
-
-    # Custom Windows JRE erstellen (Cross-Compilation)
     - echo "Creating custom Windows JRE with jlink..."
-    - jlink
-        --module-path "$WIN_JDK_JMODS"
-        --add-modules java.base,java.desktop,java.logging,java.prefs
-        --strip-debug
-        --no-man-pages
-        --no-header-files
-        --compress=2
-        --output jre-custom
-    - echo "Custom JRE size:" && du -sh jre-custom
-
-    # Release-Paket zusammenstellen
+    - jlink --module-path "$WIN_JDK_JMODS" --add-modules java.base,java.desktop,java.logging,java.prefs --strip-debug --no-man-pages --no-header-files --compress=2 --output jre-custom
+    - du -sh jre-custom
     - mkdir -p "release/Bad Peggy"
     - cp target/badpeggy-*-standalone.jar "release/Bad Peggy/badpeggy.jar"
     - cp -r jre-custom "release/Bad Peggy/jre"
@@ -65,10 +45,7 @@ create-release:
     - cp LICENSE.txt "release/Bad Peggy/" 2>/dev/null || true
     - cp etc/README.txt "release/Bad Peggy/" 2>/dev/null || true
     - cp etc/LIESMICH.txt "release/Bad Peggy/" 2>/dev/null || true
-    - printf '@echo off\r\ncd /d "%%~dp0"\r\nstart "" "jre\\bin\\javaw.exe" -jar badpeggy.jar\r\n'
-        > "release/Bad Peggy/BadPeggy.cmd"
-
-    - echo "Release package contents:"
+    - printf '@echo off\r\ncd /d "%%~dp0"\r\nstart "" "jre\\bin\\javaw.exe" -jar badpeggy.jar\r\n' > "release/Bad Peggy/BadPeggy.cmd"
     - ls -la "release/Bad Peggy/"
   artifacts:
     name: "BadPeggy-Windows-x64"
