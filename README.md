@@ -1,5 +1,5 @@
 # Bad Peggy
-[![Build and Test](https://github.com/HJS-cpu/BadPeggy/actions/workflows/build.yml/badge.svg)](https://github.com/HJS-cpu/BadPeggy/actions/workflows/build.yml)
+[![Build](https://gitlab.com/HJS-cpu/BadPeggy/badges/main/pipeline.svg)](https://gitlab.com/HJS-cpu/BadPeggy/-/pipelines)
 [![Website](https://img.shields.io/badge/Website-BadPeggy-blue)](https://hjs.page.gd/badpeggy/)
 
 > **This is a fork of Bad Peggy by coderslagoon with additional features and improvements.**
@@ -40,7 +40,7 @@ Runs on Windows.
 
 ## Download
 
-Pre-built binaries are available from [GitHub Actions](https://github.com/HJS-cpu/BadPeggy/actions) (click on the latest successful build, then download `BadPeggy-Windows-x64` from Artifacts).
+Pre-built binaries are available from [GitLab CI/CD](https://gitlab.com/HJS-cpu/BadPeggy/-/pipelines) (click on the latest successful build, then download `BadPeggy-Windows-x64` from Artifacts).
 
 The release package includes:
 - `badpeggy.jar` - Standalone JAR with all dependencies
@@ -82,7 +82,7 @@ Frozen reference test material is not included, due to the huge size of it (3+GB
 
 ## Shipping
 
-Release packages are built automatically via GitHub Actions:
+Release packages are built automatically via GitLab CI/CD:
 - **Windows**: Built on every push
 
 The workflow creates a complete release package with:
