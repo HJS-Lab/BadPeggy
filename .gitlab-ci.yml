@@ -3,11 +3,14 @@ image: maven:3.9-eclipse-temurin-17
 stages:
   - build
   - release
+  - publish
 
 variables:
   MAVEN_OPTS: "-Dmaven.repo.local=$CI_PROJECT_DIR/.m2/repository"
   MAVEN_CLI_OPTS: "-B --errors --fail-at-end"
   SWT_ARTIFACT: "org.eclipse.swt.win32.win32.x86_64"
+  PACKAGE_VERSION: "2.4.2"
+  PACKAGE_REGISTRY_URL: "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/BadPeggy/${PACKAGE_VERSION}"
 
 cache:
   key: maven-cache
@@ -28,7 +31,7 @@ create-release:
   stage: release
   when: manual
   script:
-    - apt-get update -qq && apt-get install -y -qq wget unzip > /dev/null
+    - apt-get update -qq && apt-get install -y -qq wget unzip zip curl > /dev/null
     - echo "Downloading Windows JDK for cross-compilation..."
     - wget -q "https://api.adoptium.net/v3/binary/latest/17/ga/windows/x64/jdk/hotspot/normal/eclipse" -O windows-jdk.zip
     - unzip -q windows-jdk.zip -d windows-jdk-extracted
@@ -47,6 +50,14 @@ create-release:
     - cp etc/LIESMICH.txt "Bad Peggy/" 2>/dev/null || true
     - printf '@echo off\r\ncd /d "%%~dp0"\r\nstart "" "jre\\bin\\javaw.exe" -jar badpeggy.jar\r\n' > "Bad Peggy/BadPeggy.cmd"
     - ls -la "Bad Peggy/"
+    - echo "Creating ZIP archive..."
+    - zip -r BadPeggy-Windows-x64.zip "Bad Peggy/"
+    - ls -lh BadPeggy-Windows-x64.zip
+    - echo "Uploading to GitLab Package Registry..."
+    - 'curl --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file BadPeggy-Windows-x64.zip "${PACKAGE_REGISTRY_URL}/BadPeggy-Windows-x64.zip"'
+    - echo ""
+    - echo "=== Package uploaded successfully ==="
+    - echo "Download URL: ${PACKAGE_REGISTRY_URL}/BadPeggy-Windows-x64.zip"
   artifacts:
     name: "BadPeggy-Windows-x64"
     paths:
@@ -54,3 +65,21 @@ create-release:
     expire_in: 30 days
   needs:
     - build-jar
+
+publish-release:
+  stage: publish
+  image: registry.gitlab.com/gitlab-org/cli:latest
+  when: manual
+  needs:
+    - job: create-release
+  script:
+    - echo "Creating GitLab Release v${PACKAGE_VERSION}"
+  release:
+    tag_name: 'v${PACKAGE_VERSION}'
+    name: 'Bad Peggy v${PACKAGE_VERSION}'
+    description: 'Bad Peggy v${PACKAGE_VERSION} - JPEG-Fehlerprüfung für Windows x64'
+    assets:
+      links:
+        - name: 'BadPeggy-Windows-x64.zip'
+          url: '${PACKAGE_REGISTRY_URL}/BadPeggy-Windows-x64.zip'
+          link_type: 'package'
