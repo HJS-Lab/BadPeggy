@@ -37,20 +37,20 @@ create-release:
     - echo "Creating custom Windows JRE with jlink..."
     - jlink --module-path "$WIN_JDK_JMODS" --add-modules java.base,java.desktop,java.logging,java.prefs --strip-debug --no-man-pages --no-header-files --compress=2 --output jre-custom
     - du -sh jre-custom
-    - mkdir -p "release/Bad Peggy"
-    - cp target/badpeggy-*-standalone.jar "release/Bad Peggy/badpeggy.jar"
-    - cp -r jre-custom "release/Bad Peggy/jre"
-    - cp etc/images/badpeggy.ico "release/Bad Peggy/" 2>/dev/null || true
-    - cp etc/scripts/install.vbs "release/Bad Peggy/" 2>/dev/null || true
-    - cp LICENSE.txt "release/Bad Peggy/" 2>/dev/null || true
-    - cp etc/README.txt "release/Bad Peggy/" 2>/dev/null || true
-    - cp etc/LIESMICH.txt "release/Bad Peggy/" 2>/dev/null || true
-    - printf '@echo off\r\ncd /d "%%~dp0"\r\nstart "" "jre\\bin\\javaw.exe" -jar badpeggy.jar\r\n' > "release/Bad Peggy/BadPeggy.cmd"
-    - ls -la "release/Bad Peggy/"
+    - mkdir -p "Bad Peggy"
+    - cp target/badpeggy-*-standalone.jar "Bad Peggy/badpeggy.jar"
+    - cp -r jre-custom "Bad Peggy/jre"
+    - cp etc/images/badpeggy.ico "Bad Peggy/" 2>/dev/null || true
+    - cp etc/scripts/install.vbs "Bad Peggy/" 2>/dev/null || true
+    - cp LICENSE.txt "Bad Peggy/" 2>/dev/null || true
+    - cp etc/README.txt "Bad Peggy/" 2>/dev/null || true
+    - cp etc/LIESMICH.txt "Bad Peggy/" 2>/dev/null || true
+    - printf '@echo off\r\ncd /d "%%~dp0"\r\nstart "" "jre\\bin\\javaw.exe" -jar badpeggy.jar\r\n' > "Bad Peggy/BadPeggy.cmd"
+    - ls -la "Bad Peggy/"
   artifacts:
     name: "BadPeggy-Windows-x64"
     paths:
-      - release/Bad Peggy/
+      - Bad Peggy/
     expire_in: 30 days
   needs:
     - build-jar
