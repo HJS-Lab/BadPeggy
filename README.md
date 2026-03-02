@@ -1,6 +1,7 @@
 # Bad Peggy
 [![Build](https://gitlab.com/HJS-cpu/BadPeggy/badges/main/pipeline.svg)](https://gitlab.com/HJS-cpu/BadPeggy/-/pipelines)
 [![Website](https://img.shields.io/badge/Website-BadPeggy-blue)](https://hjs.page.gd/badpeggy/)
+[![Releases](https://img.shields.io/badge/Releases-GitLab-orange)](https://gitlab.com/HJS-cpu/BadPeggy/-/releases)
 
 > **This is a fork of Bad Peggy by coderslagoon with additional features and improvements.**
 
