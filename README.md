@@ -32,7 +32,7 @@ Runs on Windows.
 
 ### Version 2.4.1
 - **Custom JRE**: Reduced release size from ~45 MB to ~30 MB using jlink
-- **GitHub Actions CI/CD**: Automatic builds with optional full release package
+- **CI/CD Pipeline**: Automatic builds with optional full release package
 
 ### Previous Improvements
 - Updated to **Java 17**
