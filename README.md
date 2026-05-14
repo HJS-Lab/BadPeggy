@@ -1,6 +1,6 @@
 # Bad Peggy
-[![pipeline](https://gitlab.com/HJS-cpu/BadPeggy/badges/main/pipeline.svg)](https://gitlab.com/HJS-cpu/BadPeggy/-/pipelines)
-[![Latest Release](https://gitlab.com/HJS-cpu/BadPeggy/-/badges/release.svg)](https://gitlab.com/HJS-cpu/BadPeggy/-/releases)
+[![Build](https://github.com/HJS-cpu/BadPeggy/actions/workflows/build.yml/badge.svg)](https://github.com/HJS-cpu/BadPeggy/actions/workflows/build.yml)
+[![Latest Release](https://img.shields.io/github/v/release/HJS-cpu/BadPeggy)](https://github.com/HJS-cpu/BadPeggy/releases)
 [![Live Website](https://img.shields.io/badge/Live_Website-hjs.page.gd-brightgreen)](https://hjs.page.gd/badpeggy/)
 
 > **This is a fork of Bad Peggy by coderslagoon with additional features and improvements.**
@@ -32,7 +32,7 @@ Runs on Windows.
 
 ### Version 2.4.1
 - **Custom JRE**: Reduced release size from ~45 MB to ~30 MB using jlink
-- **CI/CD Pipeline**: Automatic builds with optional full release package
+- **GitHub Actions CI/CD**: Automatic builds with optional full release package
 
 ### Previous Improvements
 - Updated to **Java 17**
@@ -41,7 +41,9 @@ Runs on Windows.
 
 ## Download
 
-Pre-built binaries are available from [GitLab CI/CD](https://gitlab.com/HJS-cpu/BadPeggy/-/pipelines) (click on the latest successful build, then download `BadPeggy-Windows-x64` from Artifacts).
+Pre-built binaries are available from the [Releases page](https://github.com/HJS-cpu/BadPeggy/releases) or from [GitHub Actions](https://github.com/HJS-cpu/BadPeggy/actions) (click on the latest successful build, then download `BadPeggy-Windows-x64` from Artifacts).
+
+A mirror is available on [GitLab](https://gitlab.com/HJS-cpu/BadPeggy/-/releases) as a backup.
 
 The release package includes:
 - `badpeggy.jar` - Standalone JAR with all dependencies
@@ -83,7 +85,7 @@ Frozen reference test material is not included, due to the huge size of it (3+GB
 
 ## Shipping
 
-Release packages are built automatically via GitLab CI/CD:
+Release packages are built automatically via GitHub Actions (with GitLab CI/CD as a backup mirror):
 - **Windows**: Built on every push
 
 The workflow creates a complete release package with:

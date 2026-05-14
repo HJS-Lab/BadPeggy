@@ -18,6 +18,3 @@ dependency-reduced-pom.xml
 
 CLAUDE.md
 .claude/
-
-# GitHub Actions (nur lokal behalten, nicht auf GitLab pushen)
-.github/
