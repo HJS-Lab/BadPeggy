@@ -6,7 +6,7 @@
 
     <groupId>com.coderslagoon</groupId>
     <artifactId>badpeggy</artifactId>
-    <version>2.4.2-SNAPSHOT</version>
+    <version>4.9.5</version>
     <packaging>jar</packaging>
 
     <name>Bad Peggy</name>

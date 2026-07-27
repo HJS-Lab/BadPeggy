@@ -1,6 +1,5 @@
 package coderslagoon.badpeggy;
 
-import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -25,6 +24,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Handler;
 import java.util.logging.Logger;
+import java.util.regex.Pattern;
 
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.SWT;
@@ -102,7 +102,7 @@ import com.coderslagoon.baselib.util.VarRef;
 public class GUI implements Runnable, NLS.Reg.Listener {
     final static String PROPERTIES = "badpeggy";
 
-    final static String VERSION = "2.4.2";
+    final static String VERSION = "4.9.5";
 
     final static int DLG_GAP = 10;
 
@@ -830,10 +830,15 @@ public class GUI implements Runnable, NLS.Reg.Listener {
         }
     }
 
+    final static Pattern NORM_HEX_PAT   = Pattern.compile("\\ 0x[a-fA-F0-9]+");
+    final static Pattern NORM_FLOAT_PAT = Pattern.compile("\\ [0-9]+\\.[0-9]+");
+    final static Pattern NORM_INT_PAT   = Pattern.compile("\\ [0-9]+");
+
     static String normalizeMessage(String  msg) {
-        return msg.replaceAll("\\ 0x[a-fA-F0-9]+" , "")
-                  .replaceAll("\\ [0-9]+\\.[0-9]+", "")
-                  .replaceAll("\\ [0-9]+"         , "");
+        msg = NORM_HEX_PAT  .matcher(msg).replaceAll("");
+        msg = NORM_FLOAT_PAT.matcher(msg).replaceAll("");
+        msg = NORM_INT_PAT  .matcher(msg).replaceAll("");
+        return msg;
     }
 
     Color getCachedColor(int rgb) {
@@ -868,7 +873,7 @@ public class GUI implements Runnable, NLS.Reg.Listener {
     Listener onSetData = new Safe.Listener() {
         protected void unsafeHandleEvent(Event e) {
             TableItem ti = (TableItem)e.item;
-            int idx = GUI.this.badLst.indexOf(ti);
+            int idx = e.index;
             ImageScanner.Result res = GUI.this.results.get(idx);
             ti.setData(res);
             ti.setText(0, res.tag.toString());
@@ -935,14 +940,14 @@ public class GUI implements Runnable, NLS.Reg.Listener {
 
     MenuAdapter onPopupMenu = new MenuAdapter() {
         public void menuShown(MenuEvent me) {
-            boolean enable = 0 < GUI.this.badLst.getSelectionCount();
-            for (int i : new int[] { 0, 1, 6 }) {
-                GUI.this.popupMenu.getItem(i).setEnabled(enable);
-            }
-            enable = 0 < GUI.this.results.size();
-            for (int i : new int[] { 3, 4 }) {
-                GUI.this.popupMenu.getItem(i).setEnabled(enable);
-            }
+            boolean haveSelection = 0 < GUI.this.badLst.getSelectionCount();
+            GUI.this.mniDelete    .setEnabled(haveSelection);
+            GUI.this.mniMove      .setEnabled(haveSelection);
+            GUI.this.mniOpenFolder.setEnabled(haveSelection);
+            boolean haveResults = 0 < GUI.this.results.size();
+            GUI.this.mniSelectAll .setEnabled(haveResults);
+            GUI.this.mniClear     .setEnabled(haveResults);
+            GUI.this.mniExportList.setEnabled(haveResults);
         }
     };
 
@@ -962,14 +967,11 @@ public class GUI implements Runnable, NLS.Reg.Listener {
                     SWT.ICON_QUESTION | SWT.YES | SWT.NO,
                     NLS.GUI_DLG_REM_MSG_1.fmt(c),
                     NLS.GUI_DLG_GENERIC_CONFIRM.s())) {
-                    int[] idxs = GUI.this.badLst.getSelectionIndices();
-                    Arrays.sort(idxs);
-                    int ofs = 0;
-                    for (int idx : idxs) {
-                        GUI.this.results.remove(idx - ofs);
-                        ofs++;
+                    List<ImageScanner.Result> todel = new ArrayList<>();
+                    for (int idx : GUI.this.badLst.getSelectionIndices()) {
+                        todel.add(GUI.this.results.get(idx));
                     }
-                    reset();
+                    finalizeRemoval(todel);
                 }
             }
             return;
@@ -1181,9 +1183,13 @@ public class GUI implements Runnable, NLS.Reg.Listener {
             if (!ft.isSupportedType(evt.currentDataType)) {
                 return;
             }
+            final String[] items = (String[])evt.data;
+            if (null == items) {
+                evt.detail = DND.DROP_NONE;
+                return;
+            }
             // TODO: kind of a hack, there must be a better way...
             GUI.this.scanning = true;
-            final String[] items = (String[])evt.data;
             Thread thrd = new Thread(new Runnable() {
                 public void run() {
                     GUI.this.display.syncExec(new Runnable() {
@@ -1431,8 +1437,7 @@ public class GUI implements Runnable, NLS.Reg.Listener {
                 GUI.this.infoText = fpath;
                 GUI.this.infoProgress = Math.max(0.0, Math.min(1.0, prct / 100.0));
                 GUI.this.infoBar.redraw();
-                GUI.this.infoBar.update();
-                if (GUI.this.lastPercentage < prct) {
+                if (GUI.this.lastPercentage + 0.1 <= prct) {
                     GUI.this.shell.setText(String.format(
                             "%s - %.1f%%", PRODUCT_NAME,
                             GUI.this.lastPercentage = prct));
@@ -1541,21 +1546,17 @@ public class GUI implements Runnable, NLS.Reg.Listener {
         }
         public void run2() {
             Thread.currentThread().setPriority(Thread.MIN_PRIORITY);
-            InputStream ins = null;
             try {
                 GUI.this.updateProgress(this.fnode.path(true));
-                ImageScanner.InputStreamSource iss = new ImageScanner.InputStreamSource() {
-                    public InputStream get() throws IOException{
-                        InputStream ins = ScanRun.this.fnode.fileSystem().openRead(ScanRun.this.fnode);
-                        return new BufferedInputStream(ins, IO_BUF_SZ);
-                    }
-                };
+                ImageFormat ifmt = ImageFormat.fromFileName(this.fnode.name());
+                if (null == ifmt) {
+                    throw new IOException("no image format for " + this.fnode.name());
+                }
                 ImageScanner scanner = new ImageScanner();
                 final VarRef<Boolean> aborted = new VarRef<>(false);
-                if (null == scanner.scan(iss,
-                    ImageFormat.fromFileName(this.fnode.name()),
+                if (null == scanner.scan(new File(this.fnode.path(true)), ifmt,
                     percent -> !(aborted.v = GUI.this.esc.get()))) {
-                    throw new Exception("missing JPEG reader");
+                    throw new IOException("missing image reader");
                 }
                 GUI.this.updateResult(this.fnode.path(true), scanner.lastResult(), aborted.v);
             }
@@ -1563,15 +1564,12 @@ public class GUI implements Runnable, NLS.Reg.Listener {
                 GUI.this.updateError(err);
             }
             finally {
-                if (null != ins) {
-                    try { ins.close(); } catch (IOException ignored) { }
-                }
+                GUI.this.display.syncExec(new Runnable() {
+                    public void run() {
+                        GUI.this.activeScanRuns--;
+                    }
+                });
             }
-            GUI.this.display.syncExec(new Runnable() {
-                public void run() {
-                    GUI.this.activeScanRuns--;
-                }
-            });
         }
     }
 

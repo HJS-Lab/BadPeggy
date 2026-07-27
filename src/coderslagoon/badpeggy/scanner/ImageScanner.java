@@ -3,6 +3,7 @@ package coderslagoon.badpeggy.scanner;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.EOFException;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -15,6 +16,9 @@ import javax.imageio.ImageIO;
 import javax.imageio.ImageReader;
 import javax.imageio.event.IIOReadProgressListener;
 import javax.imageio.event.IIOReadWarningListener;
+import javax.imageio.stream.FileImageInputStream;
+import javax.imageio.stream.ImageInputStream;
+import javax.imageio.stream.MemoryCacheImageInputStream;
 
 import com.coderslagoon.baselib.util.BinUtils;
 import com.coderslagoon.baselib.util.Log;
@@ -113,16 +117,49 @@ public class ImageScanner implements IIOReadWarningListener, IIOReadProgressList
         InputStream get() throws IOException;
     }
 
-    public Boolean scan(InputStreamSource iss, ImageFormat ifmt, Callback callback) {
+    private interface ImageInputStreamSource {
+        ImageInputStream get() throws IOException;
+    }
+
+    public Boolean scan(final File file, ImageFormat ifmt, Callback callback) {
+        return scanInternal(new ImageInputStreamSource() {
+            public ImageInputStream get() throws IOException {
+                return new FileImageInputStream(file);
+            }
+        }, ifmt, callback);
+    }
+
+    public Boolean scan(final InputStreamSource iss, ImageFormat ifmt, Callback callback) {
+        return scanInternal(new ImageInputStreamSource() {
+            public ImageInputStream get() throws IOException {
+                final InputStream ins = iss.get();
+                return new MemoryCacheImageInputStream(ins) {
+                    public void close() throws IOException {
+                        try {
+                            super.close();
+                        }
+                        finally {
+                            ins.close();
+                        }
+                    }
+                };
+            }
+        }, ifmt, callback);
+    }
+
+    private Boolean scanInternal(ImageInputStreamSource iiss, ImageFormat ifmt, Callback callback) {
         this.lastResult = new Result();
-        this.callback = callback;
+        if (null == ifmt) {
+            return null;
+        }
         List<ImageReader> ireaders = newReaders(ifmt);
         if (0 == ireaders.size()) {
             return null;
         }
+        this.callback = callback;
         for (ImageReader ireader : ireaders) {
             int lastResultMsgsSize = this.lastResult.msgs.size();
-            InputStream ins = null;
+            ImageInputStream iis = null;
             try {
 
                 ireader.removeAllIIOReadProgressListeners();
@@ -132,8 +169,8 @@ public class ImageScanner implements IIOReadWarningListener, IIOReadProgressList
                 ireader.addIIOReadWarningListener(this);
                 ireader.addIIOReadProgressListener(this);
     
-                ins = iss.get();
-                ireader.setInput(ImageIO.createImageInputStream(ins));
+                iis = iiss.get();
+                ireader.setInput(iis);
     
                 this.imageCount = ireader.getNumImages(true);
     
@@ -193,7 +230,7 @@ public class ImageScanner implements IIOReadWarningListener, IIOReadProgressList
                 }
             }
             finally {
-                if (null != ins) try { ins.close(); } catch (IOException ioe) { }
+                if (null != iis) try { iis.close(); } catch (IOException ioe) { }
                 ireader.dispose();
             }
         }

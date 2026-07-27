@@ -13,6 +13,19 @@ Runs on Windows.
 
 ## Changes in this Fork
 
+### Version 4.9.5
+- **Bug fixes from a full code review**:
+  - Context menu: "Open Folder", "Export List" and "Clear" are now enabled/disabled correctly
+  - Entries removed with the DEL key reappear in future scans again (stale duplicate filter fixed)
+  - Drag & drop from a failing source no longer crashes the application
+  - Files with unknown extensions are counted as unreadable instead of silently ignored
+  - A scan error can no longer freeze the application on exit
+- **Performance improvements**:
+  - Images are read directly from disk instead of being fully buffered in memory
+    (prevents out-of-memory situations with large files and many CPU cores)
+  - Smoother scrolling in large result lists
+  - Less UI overhead per scanned file (higher scan throughput)
+
 ### Version 2.4.2
 - **Progress Bar in Status Bar**: The status bar now doubles as a progress bar during scanning
   - *Phase 1 (File Search)*: Pulsating Steel Blue bar with live count of discovered files
