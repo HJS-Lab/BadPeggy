@@ -1,6 +1,7 @@
 package coderslagoon.badpeggy.scanner;
 
 import java.util.HashSet;
+import java.util.Locale;
 import java.util.Set;
 
 public enum ImageFormat {
@@ -15,10 +16,10 @@ public enum ImageFormat {
         this.name = name;
         this.lossy = lossy;
         this.indexed = indexed;
-        this.defaultExtension = exts[0].toLowerCase();
+        this.defaultExtension = exts[0].toLowerCase(Locale.ROOT);
         this.extensions = new HashSet<>();
         for (String ext: exts) {
-            this.extensions.add(ext.toLowerCase());
+            this.extensions.add(ext.toLowerCase(Locale.ROOT));
         }
     }
     public final String name;
@@ -31,7 +32,7 @@ public enum ImageFormat {
         if (-1 == lastDot) {
             return null;
         }
-        String ext = fname.substring(lastDot + 1).toLowerCase();
+        String ext = fname.substring(lastDot + 1).toLowerCase(Locale.ROOT);
         for (ImageFormat ifmt : values()) {
             if (ifmt.extensions.contains(ext)) {
                 return ifmt;

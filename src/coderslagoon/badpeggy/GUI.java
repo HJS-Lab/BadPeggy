@@ -15,6 +15,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.HashSet;
@@ -1316,8 +1317,16 @@ public class GUI implements Runnable, NLS.Reg.Listener {
         this.exec = null;
     }
 
+    final static Set<String> SYSTEM_FOLDERS = Set.of(
+            "$recycle.bin", "recycler", "recycled", "system volume information");
+
+    static boolean isSystemFolder(String folderName) {
+        return SYSTEM_FOLDERS.contains(folderName.toLowerCase(Locale.ROOT));
+    }
+
     void scan(String[] items) {
         this.scanning = true;
+        clear(false);
         enableControls(false);
         this.activeScanRuns = 0;
         this.maxActiveScanRuns = this.mniUseAllCPUCores.getSelection() ?
@@ -1352,13 +1361,13 @@ public class GUI implements Runnable, NLS.Reg.Listener {
         FileRegistrar freg = new FileRegistrar.InMemory(new DefCmp(true));
         final String[] exts = MiscUtils.csvLoad(GUIProps.OPTS_FILEEXTS.get(), true);
         for (int i = 0; i < exts.length; i++) {
-            exts[i] = "." + exts[i].toLowerCase();
+            exts[i] = "." + exts[i].toLowerCase(Locale.ROOT);
         }
         this.searchFilter = fn -> {
             if (fn.hasAttributes(FileNode.ATTR_DIRECTORY)) {
-                return true;
+                return !isSystemFolder(fn.name());
             }
-            final String nm = fn.name().toLowerCase();
+            final String nm = fn.name().toLowerCase(Locale.ROOT);
             for(String ext : exts) {
                 if (nm.endsWith(ext)) {
                     return true;
