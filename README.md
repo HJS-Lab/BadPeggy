@@ -13,7 +13,7 @@ Runs on Windows.
 
 ## Changes in this Fork
 
-### Version 4.9.5
+### Version 2.4.3
 - **Bug fixes from a full code review**:
   - Context menu: "Open Folder", "Export List" and "Clear" are now enabled/disabled correctly
   - Entries removed with the DEL key reappear in future scans again (stale duplicate filter fixed)
