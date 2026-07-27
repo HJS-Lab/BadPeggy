@@ -13,6 +13,14 @@ Runs on Windows.
 
 ## Changes in this Fork
 
+### Version 2.4.4
+- **System folders excluded from scans**: The recursive search skips `$RECYCLE.BIN`, `RECYCLER`,
+  `RECYCLED` and `System Volume Information` — deleted files from the recycle bin no longer
+  appear in scan results (explicitly scanning such a folder still works)
+- **Result list is cleared when a new scan starts** instead of mixing old and new results
+- **Locale-independent extension matching**: extensions containing "i" (gif, jfif, jif …)
+  are now recognized under any system locale
+
 ### Version 2.4.3
 - **Bug fixes from a full code review**:
   - Context menu: "Open Folder", "Export List" and "Clear" are now enabled/disabled correctly
