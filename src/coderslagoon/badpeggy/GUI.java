@@ -22,6 +22,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Handler;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
@@ -117,7 +118,7 @@ public class GUI implements Runnable, NLS.Reg.Listener {
     int               damaged;
     int               maxActiveScanRuns;
     int               activeScanRuns;
-    long              numOfFiles;
+    AtomicLong        numOfFiles = new AtomicLong();
     double            lastPercentage;
     FileSystem.Filter searchFilter;
     Map<String, File> manualFiles = new HashMap<>();
@@ -455,6 +456,7 @@ public class GUI implements Runnable, NLS.Reg.Listener {
             public void shellIconified  (ShellEvent e) { }
             public void shellClosed(ShellEvent e) {
                 GUI.this.storeProperties();
+                GUI.this.writeConfigurationFile();
             }
         });
 
@@ -473,10 +475,17 @@ public class GUI implements Runnable, NLS.Reg.Listener {
                 }
             }
         });
+
+        this.display.addFilter(SWT.KeyDown, new Listener() {
+            public void handleEvent(Event evt) {
+                if (SWT.ESC == evt.keyCode && GUI.this.scanning) {
+                    scheduleStop(false);
+                }
+            }
+        });
     }
 
     void exit() {
-        GUI.this.writeConfigurationFile();
         for (File fl : GUI.this.manualFiles.values()) {
             fl.delete();
         }
@@ -959,6 +968,9 @@ public class GUI implements Runnable, NLS.Reg.Listener {
                 return;
             }
             else if (evt.keyCode == SWT.DEL) {
+                if (GUI.this.scanning) {
+                    return;
+                }
                 int c = GUI.this.badLst.getSelectionCount();
                 if (0 == c) {
                     return;
@@ -1183,6 +1195,10 @@ public class GUI implements Runnable, NLS.Reg.Listener {
             if (!ft.isSupportedType(evt.currentDataType)) {
                 return;
             }
+            if (GUI.this.scanning) {
+                evt.detail = DND.DROP_NONE;
+                return;
+            }
             final String[] items = (String[])evt.data;
             if (null == items) {
                 evt.detail = DND.DROP_NONE;
@@ -1351,27 +1367,52 @@ public class GUI implements Runnable, NLS.Reg.Listener {
             return false;
         };
         FileSystem fs = new LocalFileSystem(false);
-        this.numOfFiles = 0;
+        this.numOfFiles.set(0);
         startIndeterminateAnimation();
-        try {
-            FileRegistrar.Callback frcb = (nd0, nd1) ->  Merge.IGNORE;
-            List<FileNode> files = new ArrayList<>();
-            for (String item : items) {
-                FileNode fn = fs.nodeFromString(item);
-                if (fn.hasAttributes(FileNode.ATTR_DIRECTORY)) {
-                    boolean recursive = GUI.this.mniIncSubFolders.getSelection();
-                    search(freg, fs, fn, fn, recursive);
+        final boolean recursive = this.mniIncSubFolders.getSelection();
+        final VarRef<Throwable> searchError = new VarRef<>(null);
+        final AtomicBoolean searchDone = new AtomicBoolean();
+        Thread searcher = new Thread(new Runnable() {
+            public void run() {
+                try {
+                    FileRegistrar.Callback frcb = (nd0, nd1) ->  Merge.IGNORE;
+                    List<FileNode> files = new ArrayList<>();
+                    for (String item : items) {
+                        FileNode fn = fs.nodeFromString(item);
+                        if (fn.hasAttributes(FileNode.ATTR_DIRECTORY)) {
+                            search(freg, fs, fn, fn, recursive);
+                        }
+                        else {
+                            files.clear();
+                            files.add(fn);
+                            freg.add(files, fn, freg.root(), frcb);
+                            GUI.this.numOfFiles.incrementAndGet();
+                        }
+                    }
                 }
-                else {
-                    files.clear();
-                    files.add(fn);
-                    freg.add(files, fn, freg.root(), frcb);
-                    this.numOfFiles++;
+                catch (Throwable err) {
+                    searchError.v = err;
+                }
+                finally {
+                    searchDone.set(true);
+                    GUI.this.display.wake();
                 }
             }
+        });
+        searcher.start();
+        while (!searchDone.get()) {
+            if (!this.display.readAndDispatch()) {
+                this.display.sleep();
+            }
         }
-        catch (IOException ioe) {
-            stopIndeterminateAnimation();
+        stopIndeterminateAnimation();
+        if (null != searchError.v) {
+            if (!(searchError.v instanceof IOException)) {
+                if (searchError.v instanceof RuntimeException) {
+                    throw (RuntimeException)searchError.v;
+                }
+                throw new RuntimeException(searchError.v);
+            }
             if (this.esc.get()) {
                 setInfoText(NLS.GUI_MSG_ABORTED_SEARCH.s());
                 setInfoProgress(0.0);
@@ -1380,12 +1421,11 @@ public class GUI implements Runnable, NLS.Reg.Listener {
                 setInfoText(NLS.GUI_MSG_FAILED_SEARCH.s());
                 setInfoProgress(0.0);
                 showMessage(SWT.ICON_ERROR | SWT.OK,
-                    NLS.GUI_MSG_SEARCH_FAILED_1.fmt(ioe.getMessage()),
+                    NLS.GUI_MSG_SEARCH_FAILED_1.fmt(searchError.v.getMessage()),
                     NLS.GUI_DLG_GENERIC_WARNING.s());
             }
             return;
         }
-        stopIndeterminateAnimation();
         //FileRegistrar.dump(freg.root(), 0, System.out);
         this.scanned    = 0;
         this.unreadable = 0;
@@ -1433,7 +1473,7 @@ public class GUI implements Runnable, NLS.Reg.Listener {
             public void run() {
                 GUI.this.scanned++;
                 double prct = (GUI.this.scanned * 100.0) /
-                               GUI.this.numOfFiles;
+                               GUI.this.numOfFiles.get();
                 GUI.this.infoText = fpath;
                 GUI.this.infoProgress = Math.max(0.0, Math.min(1.0, prct / 100.0));
                 GUI.this.infoBar.redraw();
@@ -1457,8 +1497,8 @@ public class GUI implements Runnable, NLS.Reg.Listener {
                     case WARNING:
                     case ERROR: {
                         res.tag = fpath;
-                        GUI.this.damaged++;
                         if (addResult(res)) {
+                            GUI.this.damaged++;
                             GUI.this.badLst.setItemCount(GUI.this.results.size());
                         }
                         break;
@@ -1495,6 +1535,7 @@ public class GUI implements Runnable, NLS.Reg.Listener {
             public void run() {
                 if (!GUI.this.indeterminate || GUI.this.infoBar.isDisposed()) return;
                 GUI.this.indeterminatePos += 0.08;
+                GUI.this.infoText = NLS.GUI_MSG_SEARCHING_2.fmt(GUI.this.numOfFiles.get());
                 GUI.this.infoBar.redraw();
                 GUI.this.display.timerExec(50, this);
             }
@@ -1560,7 +1601,7 @@ public class GUI implements Runnable, NLS.Reg.Listener {
                 }
                 GUI.this.updateResult(this.fnode.path(true), scanner.lastResult(), aborted.v);
             }
-            catch (Throwable err) {
+            catch (Exception err) {
                 GUI.this.updateError(err);
             }
             finally {
@@ -1575,15 +1616,15 @@ public class GUI implements Runnable, NLS.Reg.Listener {
 
     void search(FileRegistrar freg, FileSystem fs, FileNode dir, FileNode bottom,
                 boolean recursive) throws IOException {
-        setInfoText(NLS.GUI_MSG_SEARCHING_2.fmt(this.numOfFiles));
-        while (this.display.readAndDispatch()) {
-            if (this.esc.get()) {
-                throw new IOException();
-            }
+        if (this.esc.get()) {
+            throw new IOException();
         }
         Iterator<FileNode> ifn = fs.list(dir, this.searchFilter);
         List<FileNode> files = new ArrayList<>();
         while (ifn.hasNext()) {
+            if (this.esc.get()) {
+                throw new IOException();
+            }
             FileNode fn = ifn.next();
             if (fn.hasAttributes(FileNode.ATTR_DIRECTORY)) {
                 if (recursive) {
@@ -1592,7 +1633,7 @@ public class GUI implements Runnable, NLS.Reg.Listener {
             }
             else {
                 files.add(fn);
-                this.numOfFiles++;
+                this.numOfFiles.incrementAndGet();
             }
         }
         freg.add(files, bottom, null, (nd0, nd1) -> Merge.IGNORE);

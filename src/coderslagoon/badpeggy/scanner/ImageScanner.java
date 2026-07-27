@@ -44,8 +44,16 @@ public class ImageScanner implements IIOReadWarningListener, IIOReadProgressList
         }
     }
 
+    final static int MAX_WARNINGS = 1000;
+
     public void warningOccurred(ImageReader source, String warning) {
-        this.lastResult.msgs.add(warning);
+        List<String> msgs = this.lastResult.msgs;
+        if (MAX_WARNINGS > msgs.size()) {
+            msgs.add(warning);
+        }
+        else if (MAX_WARNINGS == msgs.size()) {
+            msgs.add("(further warnings suppressed)");
+        }
     }
 
     int      imageIndex;
@@ -173,9 +181,12 @@ public class ImageScanner implements IIOReadWarningListener, IIOReadProgressList
                 ireader.setInput(iis);
     
                 this.imageCount = ireader.getNumImages(true);
+                if (0 >= this.imageCount) {
+                    throw new IIOException("no images in file");
+                }
     
-                for (this.imageIndex = 0; this.imageIndex < this.imageCount;) {
-                    BufferedImage bimg = ireader.read(this.imageIndex++);
+                for (this.imageIndex = 0; this.imageIndex < this.imageCount; this.imageIndex++) {
+                    BufferedImage bimg = ireader.read(this.imageIndex);
     
                     _log.trace("image decoded (" + bimg.getWidth () + "x" +
                                                    bimg.getHeight() + ")");
@@ -217,7 +228,12 @@ public class ImageScanner implements IIOReadWarningListener, IIOReadProgressList
                 this.lastResult.msgs.add(MSG);
                 this.lastResult.type = Result.Type.ERROR;
             }
-            catch (Throwable e) {
+            catch (StopException se) {
+                this.lastResult.msgs.add("scan aborted");
+                this.lastResult.type = Result.Type.UNEXPECTED_ERROR;
+                break;
+            }
+            catch (Exception e) {
                 Log.exception(Log.Level.ERROR, "unexpected error", e);
                 String msg = e.getMessage();
                 if (null == msg) {

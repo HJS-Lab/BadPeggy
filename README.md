@@ -20,11 +20,18 @@ Runs on Windows.
   - Drag & drop from a failing source no longer crashes the application
   - Files with unknown extensions are counted as unreadable instead of silently ignored
   - A scan error can no longer freeze the application on exit
+  - The scan can now actually be aborted with the ESC key (as the status bar always claimed)
+  - The UI stays responsive during the file search phase — the search runs in a background thread
+  - Delete, clear and drag & drop are locked while a scan is running
+  - Errors while saving the configuration on exit are shown again
+  - The damaged-files counter no longer counts duplicates
 - **Performance improvements**:
   - Images are read directly from disk instead of being fully buffered in memory
     (prevents out-of-memory situations with large files and many CPU cores)
   - Smoother scrolling in large result lists
   - Less UI overhead per scanned file (higher scan throughput)
+  - Warning messages per file are capped, so a heavily damaged file no longer
+    allocates unbounded memory
 
 ### Version 2.4.2
 - **Progress Bar in Status Bar**: The status bar now doubles as a progress bar during scanning
