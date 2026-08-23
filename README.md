@@ -1,6 +1,6 @@
 # Bad Peggy
-[![Build](https://github.com/HJS-cpu/BadPeggy/actions/workflows/build.yml/badge.svg)](https://github.com/HJS-cpu/BadPeggy/actions/workflows/build.yml)
-[![Latest Release](https://img.shields.io/github/v/release/HJS-cpu/BadPeggy)](https://github.com/HJS-cpu/BadPeggy/releases)
+[![Build](https://github.com/HJS-Lab/BadPeggy/actions/workflows/build.yml/badge.svg)](https://github.com/HJS-Lab/BadPeggy/actions/workflows/build.yml)
+[![Latest Release](https://img.shields.io/github/v/release/HJS-Lab/BadPeggy)](https://github.com/HJS-Lab/BadPeggy/releases)
 [![Live Website](https://img.shields.io/badge/Live_Website-hjs.page.gd-brightgreen)](https://hjs.page.gd/badpeggy/)
 
 > **This is a fork of Bad Peggy by coderslagoon with additional features and improvements.**
@@ -69,7 +69,7 @@ Runs on Windows.
 
 ## Download
 
-Pre-built binaries are available from the [Releases page](https://github.com/HJS-cpu/BadPeggy/releases) or from [GitHub Actions](https://github.com/HJS-cpu/BadPeggy/actions) (click on the latest successful build, then download `BadPeggy-Windows-x64` from Artifacts).
+Pre-built binaries are available from the [Releases page](https://github.com/HJS-Lab/BadPeggy/releases) or from [GitHub Actions](https://github.com/HJS-Lab/BadPeggy/actions) (click on the latest successful build, then download `BadPeggy-Windows-x64` from Artifacts).
 
 A mirror is available on [GitLab](https://gitlab.com/HJS-cpu/BadPeggy/-/releases) as a backup.
 
