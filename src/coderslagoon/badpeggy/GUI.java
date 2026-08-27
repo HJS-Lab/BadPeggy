@@ -199,7 +199,7 @@ public class GUI implements Runnable, NLS.Reg.Listener {
     }
 
     final static String PRODUCT_NAME = "Bad Peggy";
-    public final static String PRODUCT_SITE = "https://hjs.page.gd/badpeggy/";
+    public final static String PRODUCT_SITE = "https://hjslab.de/badpeggy/";
     
     final static int EXITCODE_UNRECERR = 1;
 
